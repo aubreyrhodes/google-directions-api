@@ -47,7 +47,11 @@ module GoogleDirectionsAPI
         destination: to,
         waypoints: encode_waypoints,
         departure_time: departure_time
-      }.keep_if { |k,v| !v.nil? && !v.empty? }
+      }.keep_if { |k,v| valid_param(v) }
+    end
+
+    def valid_param(param)
+      !param.nil? && (param.class == ::String ? !param.empty? : param.present?)
     end
 
     def encode_waypoints
