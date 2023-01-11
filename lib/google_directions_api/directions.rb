@@ -28,7 +28,8 @@ module GoogleDirectionsAPI
 
     def duration_in_traffic
       return nil unless departure_time.present?
-      total_duration_in_traffic / 60
+      summed_duration = total_duration_in_traffic
+      summed_duration.nil? ? nil : summed_duration / 60
     end
 
     def has_tolls?
@@ -47,7 +48,11 @@ module GoogleDirectionsAPI
         destination: to,
         waypoints: encode_waypoints,
         departure_time: departure_time
-      }.keep_if { |k,v| !v.nil? && !v.empty? }
+      }.keep_if { |k,v| valid_param(v) }
+    end
+
+    def valid_param(param)
+      !param.nil? && (param.class == ::String ? !param.empty? : param.present?)
     end
 
     def encode_waypoints
@@ -72,9 +77,11 @@ module GoogleDirectionsAPI
     end
 
     def total_duration_in_traffic
-      data["routes"][0]["legs"].inject(0) do |seconds, leg|
-        seconds + leg["duration_in_traffic"]["value"]
+      summed_duration = data['routes'][0]['legs'].inject(0) do |seconds, leg|
+        leg['duration_in_traffic'].nil? ? seconds : seconds + leg['duration_in_traffic']['value']
       end
+      return nil if summed_duration == 0
+      summed_duration
     end
 
     def tolls_along_route?
