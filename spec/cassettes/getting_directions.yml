@@ -2,7 +2,7 @@
 http_interactions:
 - request:
     method: get
-    uri: https://maps.googleapis.com/maps/api/directions/json?destination=33.999729,-81.032936&key=<GOOGLE_API_KEY>&origin=33.7487,-84.3876
+    uri: https://maps.googleapis.com/maps/api/directions/json?alternatives=false&destination=33.999729,-81.032936&key=<GOOGLE_API_KEY>&origin=33.7487,-84.3876
     body:
       encoding: US-ASCII
       string: ''
