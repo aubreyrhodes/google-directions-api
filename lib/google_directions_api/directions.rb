@@ -3,14 +3,15 @@ require_relative './polyline/encoder'
 
 module GoogleDirectionsAPI
   class Directions < Base
-    attr_accessor :from, :to, :waypoints, :departure_time
+    attr_accessor :from, :to, :waypoints, :departure_time, :alternatives
 
-    def self.new_for_locations(from:, to:, waypoints: nil, departure_time: nil)
+    def self.new_for_locations(from:, to:, waypoints: nil, departure_time: nil, alternatives: false)
       new.tap do |d|
         d.to = to
         d.from = from
         d.waypoints = waypoints
         d.departure_time = departure_time
+        d.alternatives = alternatives
       end
     end
 
@@ -47,11 +48,16 @@ module GoogleDirectionsAPI
         origin: from,
         destination: to,
         waypoints: encode_waypoints,
-        departure_time: departure_time
+        departure_time: departure_time,
+        alternatives: alternatives
       }.keep_if { |k,v| valid_param(v) }
     end
 
     def valid_param(param)
+      if param.class == ::TrueClass || param.class == ::FalseClass
+        return true
+      end
+
       !param.nil? && (param.class == ::String ? !param.empty? : param.present?)
     end
 
@@ -61,7 +67,7 @@ module GoogleDirectionsAPI
     end
 
     def data
-      @data ||= JSON.parse(response.body)
+      @data ||= get_data(JSON.parse(response.body))
     end
 
     def total_distance
@@ -98,6 +104,30 @@ module GoogleDirectionsAPI
       return false if waypoints.nil? || waypoints.empty?
 
       return true
+    end
+
+    def get_data(json_response)
+      if !alternatives
+        json_response["routes"] = [json_response["routes"][0]]
+      else
+        shortest_distance = 1000000000
+        shortest_route = {}
+
+        json_response["routes"].each do |route|
+          total_distance = route["legs"].inject(0) do |meters, leg|
+            meters + leg["distance"]["value"]
+          end
+
+          if total_distance < shortest_distance
+            shortest_distance = total_distance
+            shortest_route = route
+          end
+        end
+
+        json_response["routes"] = [shortest_route]
+      end
+
+      return json_response
     end
   end
 end
