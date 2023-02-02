@@ -3,15 +3,15 @@ require_relative './polyline/encoder'
 
 module GoogleDirectionsAPI
   class Directions < Base
-    attr_accessor :from, :to, :waypoints, :departure_time, :alternatives
+    attr_accessor :from, :to, :waypoints, :departure_time, :use_shortest_distance
 
-    def self.new_for_locations(from:, to:, waypoints: nil, departure_time: nil, alternatives: false)
+    def self.new_for_locations(from:, to:, waypoints: nil, departure_time: nil, use_shortest_distance: false)
       new.tap do |d|
         d.to = to
         d.from = from
         d.waypoints = waypoints
         d.departure_time = departure_time
-        d.alternatives = alternatives
+        d.use_shortest_distance = use_shortest_distance
       end
     end
 
@@ -49,7 +49,7 @@ module GoogleDirectionsAPI
         destination: to,
         waypoints: encode_waypoints,
         departure_time: departure_time,
-        alternatives: alternatives
+        alternatives: use_shortest_distance
       }.keep_if { |k,v| valid_param(v) }
     end
 
@@ -107,7 +107,7 @@ module GoogleDirectionsAPI
     end
 
     def get_data(json_response)
-      if !alternatives
+      if !use_shortest_distance
         json_response["routes"] = [json_response["routes"][0]]
       else
         shortest_distance = 1000000000
@@ -117,7 +117,7 @@ module GoogleDirectionsAPI
           total_distance = route["legs"].inject(0) do |meters, leg|
             meters + leg["distance"]["value"]
           end
-
+          
           if total_distance < shortest_distance
             shortest_distance = total_distance
             shortest_route = route
